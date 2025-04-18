@@ -3,9 +3,9 @@ using Core.Entities;
 
 namespace API.Extensions
 {
-   public static class ModelToResponse
+   public static class CustomerExtension
    {
-      public static CustomerResponse? ToResponse(this Customer customer)
+      public static CustomerResponse? ToCustomerResponse(this Customer customer)
       {
          if (customer == null)
          {
@@ -14,7 +14,7 @@ namespace API.Extensions
          return new CustomerResponse(customer.Id, customer.Name, customer.DateOfBirth);
       }
 
-      public static Customer ToModel(this AddCustomerRequest request)
+      public static Customer ToCustomer(this AddCustomerRequest request)
       {
          return new Customer
          {
@@ -23,7 +23,7 @@ namespace API.Extensions
          };
       }
 
-      public static Customer ToModel(this UpdateCustomerRequest request)
+      public static Customer ToCustomer(this UpdateCustomerRequest request)
       {
          return new Customer
          {
@@ -33,10 +33,15 @@ namespace API.Extensions
          };
       }
 
-      public static void ToModel(this UpdateCustomerRequest request, Customer customer)
-      {         
+      public static void ToCustomerUpdate(this UpdateCustomerRequest request, Customer customer)
+      {
          customer.Name = request.Name;
          customer.DateOfBirth = request.DateOfBirth;
+      }
+
+      public static DeleteCustomerResponse ToCustomerDelete(this Customer customer)
+      {
+         return new DeleteCustomerResponse(customer.ToCustomerResponse());         
       }
    }
 }

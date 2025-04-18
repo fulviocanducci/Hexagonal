@@ -34,7 +34,7 @@ namespace API.Controllers
          {
             return NotFound($"Customer {id} not found");
          }         
-         return Ok(result.ToResponse());
+         return Ok(result.ToCustomerResponse());
       }
 
       [HttpPost]
@@ -42,11 +42,11 @@ namespace API.Controllers
       [ProducesResponseType(StatusCodes.Status500InternalServerError)]
       public async Task<IActionResult> Post([FromBody] AddCustomerRequest request)
       {
-         if (!ModelState.IsValid)
+         if (ModelState.IsProblem())
          {
             return BadRequest(ModelState);
          }
-         Customer customer = request.ToModel();
+         Customer customer = request.ToCustomer();
          await _customerService.AddAsync(customer);
          if (await _unitOfWork.CommitAsync() <= 0)
          {
@@ -60,9 +60,9 @@ namespace API.Controllers
       [ProducesResponseType(StatusCodes.Status204NoContent)]
       [ProducesResponseType(StatusCodes.Status404NotFound)]
       [ProducesResponseType(StatusCodes.Status500InternalServerError)]
-      public async Task<IActionResult> Put([FromBody] UpdateCustomerRequest request)
+      public async Task<IActionResult> Put(string id, [FromBody] UpdateCustomerRequest request)
       {
-         if (ModelState.IsValid == false)
+         if (ModelState.IsProblem())
          {
             return BadRequest(ModelState);
          }
@@ -71,7 +71,7 @@ namespace API.Controllers
          {
             return NotFound("Customer not found");
          }
-         request.ToModel(customer);
+         request.ToCustomerUpdate(customer);
          if (await _unitOfWork.CommitAsync() <= 0)
          {
             return BadRequest("Failed to update customer");
@@ -95,7 +95,7 @@ namespace API.Controllers
          {
             return BadRequest("Failed to delete customer");
          }
-         return Ok(new { message = "deleted", customer });
+         return Ok(customer.ToCustomerDelete());
       }
    }
 }

@@ -27,6 +27,12 @@ namespace Infrastructure.Repositories
          }
       }
 
+      public Task DeleteAsync(Customer customer)
+      {
+         _context.Customers.Remove(customer);
+         return Task.CompletedTask;
+      }
+
       public IAsyncEnumerable<Customer> GetAllAsync()
       {
          return _context.Customers.AsNoTracking().AsAsyncEnumerable();

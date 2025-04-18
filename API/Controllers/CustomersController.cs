@@ -1,55 +1,52 @@
-﻿using Application.DTOs.Customers;
+﻿using API.Extensions;
+using Application.DTOs.Customers;
 using Core.Entities;
 using Core.Interfaces;
 using Infrastructure.Data;
 using Microsoft.AspNetCore.Mvc;
+using System.Net.Mime;
 namespace API.Controllers
 {
    [Route("api/[controller]")]
    [ApiController]
-   public class CustomersController : ControllerBase
+   [Produces(MediaTypeNames.Application.Json)]
+   public class CustomersController(ICustomerService customerService, IUnitOfWork unitOfWork) : ControllerBase
    {
-      private readonly ICustomerService _customerService;
-      private readonly IUnitOfWork _unitOfWork;
+      private readonly ICustomerService _customerService = customerService ?? throw new ArgumentNullException(nameof(customerService));
+      private readonly IUnitOfWork _unitOfWork = unitOfWork ?? throw new ArgumentNullException(nameof(unitOfWork));
 
-      public CustomersController(ICustomerService customerService, IUnitOfWork unitOfWork)
-      {
-         _customerService = customerService ?? throw new ArgumentNullException(nameof(customerService));
-         _unitOfWork = unitOfWork ?? throw new ArgumentNullException(nameof(unitOfWork));
-      }
-
-      // GET: api/<CustomersController>
       [HttpGet]
+      [ProducesResponseType(typeof(List<Customer>), StatusCodes.Status200OK)]
+      [ProducesResponseType(StatusCodes.Status500InternalServerError)]
       public IAsyncEnumerable<Customer> Get()
       {
          return _customerService.GetAllAsync();
       }
 
-      // GET api/<CustomersController>/5
       [HttpGet("{id}")]
+      [ProducesResponseType(typeof(CustomerResponse), StatusCodes.Status200OK)]
+      [ProducesResponseType(StatusCodes.Status404NotFound)]
+      [ProducesResponseType(StatusCodes.Status500InternalServerError)]
       public async Task<IActionResult> Get(int id)
       {
          Customer result = await _customerService.GetAsync(id);
          if (result == null)
          {
-            return BadRequest("Customer not found");
-         }
-         return Ok(result);
+            return NotFound($"Customer {id} not found");
+         }         
+         return Ok(result.ToResponse());
       }
 
-      // POST api/<CustomersController>
       [HttpPost]
+      [ProducesResponseType(typeof(Customer), StatusCodes.Status201Created)]
+      [ProducesResponseType(StatusCodes.Status500InternalServerError)]
       public async Task<IActionResult> Post([FromBody] AddCustomerRequest request)
-      {         
-         if (ModelState.IsValid == false)
+      {
+         if (!ModelState.IsValid)
          {
             return BadRequest(ModelState);
          }
-         Customer customer = new Customer
-         {
-            Name = request.Name,
-            DateOfBirth = request.DateOfBirth
-         };
+         Customer customer = request.ToModel();
          await _customerService.AddAsync(customer);
          if (await _unitOfWork.CommitAsync() <= 0)
          {
@@ -58,10 +55,13 @@ namespace API.Controllers
          return CreatedAtAction(nameof(Get), new { id = customer.Id }, customer);
       }
 
-      // PUT api/<CustomersController>/5
+
       [HttpPut("{id}")]
+      [ProducesResponseType(StatusCodes.Status204NoContent)]
+      [ProducesResponseType(StatusCodes.Status404NotFound)]
+      [ProducesResponseType(StatusCodes.Status500InternalServerError)]
       public async Task<IActionResult> Put([FromBody] UpdateCustomerRequest request)
-      {         
+      {
          if (ModelState.IsValid == false)
          {
             return BadRequest(ModelState);
@@ -71,8 +71,7 @@ namespace API.Controllers
          {
             return NotFound("Customer not found");
          }
-         customer.Name = request.Name; 
-         customer.DateOfBirth = request.DateOfBirth;
+         request.ToModel(customer);
          if (await _unitOfWork.CommitAsync() <= 0)
          {
             return BadRequest("Failed to update customer");
@@ -80,10 +79,23 @@ namespace API.Controllers
          return NoContent();
       }
 
-      // DELETE api/<CustomersController>/5
+      [ProducesResponseType(typeof(Customer), StatusCodes.Status201Created)]
+      [ProducesResponseType(StatusCodes.Status404NotFound)]
+      [ProducesResponseType(StatusCodes.Status500InternalServerError)]
       [HttpDelete("{id}")]
-      public void Delete(int id)
+      public async Task<IActionResult> Delete(int id)
       {
+         Customer customer = await _customerService.GetAsync(id);
+         if (customer == null)
+         {
+            return NotFound($"Customer {id} not found");
+         }
+         await _customerService.DeleteAsync(customer);
+         if (await _unitOfWork.CommitAsync() <= 0)
+         {
+            return BadRequest("Failed to delete customer");
+         }
+         return Ok(new { message = "deleted", customer });
       }
    }
 }

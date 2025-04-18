@@ -7,36 +7,28 @@ namespace API
    {
       public static void Main(string[] args)
       {
-         // CreateHostBuilder(args).Build().Run();
+         // Add WebApplicationBuilder
          WebApplicationBuilder builder = WebApplication.CreateBuilder(args);
+         ConfigurationManager configurationManager = builder.Configuration;
+         
+         // Services
          builder.Services.AddControllers();
          builder.Services.AddFluentValidationDefault();
          builder.Services.AddEndpointsApiExplorer();
          builder.Services.AddSwaggerGen();
-         builder.Services.AddInfrastructure(builder.Configuration);    
-         builder.Services.Configure<RouteOptions>(options =>
-         {
-            options.LowercaseUrls = true;
-            options.LowercaseQueryStrings = true;
-         });
-         builder.Services.AddCors(options =>
-         {
-            options.AddDefaultPolicy(
-               builder =>
-               {
-                  builder.AllowAnyOrigin()
-                         .AllowAnyMethod()
-                         .AllowAnyHeader();
-               });
-         });
-         // Add services to the container.
+         builder.Services.AddInfrastructure(configurationManager);
+         builder.Services.AddApplicationDefault();
+
+         // Add WebApplication
          WebApplication app = builder.Build();
-         app.UseCors();
+
+         // Uses
          if (app.Environment.IsDevelopment())
          {
             app.UseSwagger();
             app.UseSwaggerUI();
          }
+         app.UseCors();
          app.UseHttpsRedirection();
          app.UseAuthorization();
          app.MapControllers();

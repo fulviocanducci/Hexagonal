@@ -25,6 +25,11 @@ namespace Core.Services
          return _repository.DeleteAsync(id);
       }
 
+      public Task DeleteAsync(Customer customer)
+      {
+         return _repository.DeleteAsync(customer);
+      }
+
       public IAsyncEnumerable<Customer> GetAllAsync()
       {
          return _repository.GetAllAsync();

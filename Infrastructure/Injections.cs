@@ -1,8 +1,10 @@
-﻿using Infrastructure.Data;
+﻿using Core.Interfaces;
+using Core.Services;
+using Infrastructure.Data;
+using Infrastructure.Repositories;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
-
 namespace Infrastructure
 {
    public static class Injections
@@ -18,11 +20,27 @@ namespace Infrastructure
                options => { }
             );
          });
+         services.AddScoped<IUnitOfWork, UnitOfWork>();
          return services;
       }
+      
+      internal static IServiceCollection AddRepositories(this IServiceCollection services, IConfiguration configuration)
+      {
+         services.AddScoped<ICustomerRepository, CustomerRepository>();
+         return services;
+      }
+      
+      internal static IServiceCollection AddServices(this IServiceCollection services, IConfiguration configuration)
+      {
+         services.AddScoped<ICustomerService, CustomerService>();
+         return services;
+      }
+
       public static IServiceCollection AddInfrastructure(this IServiceCollection services, IConfiguration configuration)
       {
          services.AddDbContextDefault(configuration);
+         services.AddRepositories(configuration);
+         services.AddServices(configuration);
          return services;
       }
    }

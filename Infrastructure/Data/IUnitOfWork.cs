@@ -4,7 +4,7 @@ namespace Infrastructure.Data
 {
    public interface IUnitOfWork
    {
-      int Commit();
-      Task<int> CommitAsync();
+      bool Commit();
+      Task<bool> CommitAsync();
    }
 }

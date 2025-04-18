@@ -15,14 +15,14 @@ namespace Infrastructure.Data
          _context = context;
       }
 
-      public int Commit()
+      public bool Commit()
       {
-         return _context.SaveChanges();
+         return _context.SaveChanges() > 0;
       }
 
-      public Task<int> CommitAsync()
+      public async Task<bool> CommitAsync()
       {
-         return _context.SaveChangesAsync();
+         return (await _context.SaveChangesAsync()) > 0; 
       }
    }
 }

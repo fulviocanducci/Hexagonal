@@ -19,7 +19,7 @@ namespace Infrastructure.Mappings
          builder.Property(x => x.DateOfBirth)
             .HasColumnName("date_of_birth")
             .HasColumnType("date")
-            .IsRequired(false);
+            .IsRequired();
       }
 
       public static CustomerMapping Instance { get; } = new CustomerMapping();   

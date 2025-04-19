@@ -1,10 +1,14 @@
 ﻿using API.Extensions;
 using Application.DTOs.Customers;
 using Application.Validators;
+using Canducci.Pagination;
 using Core.Entities;
 using Core.Interfaces;
 using Infrastructure.Data;
+using Infrastructure.Utils;
+using MapsterMapper;
 using Microsoft.AspNetCore.Mvc;
+using System.Linq.Expressions;
 using System.Net.Mime;
 namespace API.Controllers
 {
@@ -15,41 +19,46 @@ namespace API.Controllers
    {
       private readonly ICustomerService CustomerService;
       private readonly IUnitOfWork UnitOfWork;
+      private readonly IMapper Mapper;
 
       #region PrivateAction
       [NonAction]
       private async Task<Customer> GetByIdAsync(long id)
       {
          return await CustomerService.GetAsync(id);
-      }
-
-      [NonAction]
-      private Customer SetFields(AddCustomerRequest request)
+      }  
+      private CustomerResponse MapperToCustomerResponse(Customer customer)
       {
-         return new Customer(request.Name, request.DateOfBirth);
-      }
-
-      [NonAction]
-      private void SetFields(Customer customer, UpdateCustomerRequest request)
-      {
-         customer.SetName(request.Name);
-         customer.SetDateOfBirth(request.DateOfBirth);         
+         return Mapper.Map<CustomerResponse>(customer);
       }
       #endregion
 
-      public CustomersController(ICustomerService customerService, IUnitOfWork unitOfWork)
+      public CustomersController(ICustomerService customerService, IUnitOfWork unitOfWork, IMapper mapper)
       {
          CustomerService = customerService ?? throw new ArgumentNullException(nameof(customerService));
          UnitOfWork = unitOfWork ?? throw new ArgumentNullException(nameof(unitOfWork));
+         Mapper = mapper ?? throw new ArgumentNullException(nameof(mapper));
       }
 
       [HttpGet]
-      [ProducesResponseType(typeof(List<Customer>), StatusCodes.Status200OK)]
+      [ProducesResponseType(typeof(List<CustomerResponse>), StatusCodes.Status200OK)]
       [ProducesResponseType(StatusCodes.Status500InternalServerError)]
-      public IActionResult Get()
+      public async Task<IActionResult> Get()
       {
-         IAsyncEnumerable<Customer> data = CustomerService.GetAllAsync();
-         return Ok(ApiResponse<IAsyncEnumerable<Customer>>.Ok(data));
+         List<Customer> items = await CustomerService.ToListAllAsync();
+         List<CustomerResponse> data = Mapper.Map<List<CustomerResponse>>(items);
+         return Ok(ApiResponse<List<CustomerResponse>>.Ok(data));
+      }
+
+      [HttpGet("page")]
+      [ProducesResponseType(typeof(List<CustomerResponse>), StatusCodes.Status200OK)]
+      [ProducesResponseType(StatusCodes.Status500InternalServerError)]
+      public async Task<IActionResult> Page([FromQuery] PageRequest pageRequest)
+      {
+         Expression<Func<Customer, CustomerResponse>> select = x => new CustomerResponse(x.Id, x.Name, x.DateOfBirth);
+         Expression<Func<Customer, long>> orderBy = x => x.Id;
+         PaginatedRest<CustomerResponse> data = await CustomerService.ToPagedListAsync(pageRequest, select, orderBy);         
+         return Ok(ApiResponse<PaginatedRest<CustomerResponse>>.Ok(data));
       }
 
       [HttpGet("{id}")]
@@ -63,11 +72,12 @@ namespace API.Controllers
          {
             return NotFound(ApiResponse.NotFound($"Customer {id} not found"));
          }
-         return Ok(ApiResponse<Customer>.Ok(result));
+         CustomerResponse data = MapperToCustomerResponse(result);
+         return Ok(ApiResponse<CustomerResponse>.Ok(data));
       }
 
       [HttpPost]
-      [ProducesResponseType(typeof(Customer), StatusCodes.Status201Created)]
+      [ProducesResponseType(typeof(CustomerResponse), StatusCodes.Status201Created)]
       [ProducesResponseType(StatusCodes.Status500InternalServerError)]
       public async Task<IActionResult> Post([FromBody] AddCustomerRequest request)
       {
@@ -75,13 +85,14 @@ namespace API.Controllers
          {
             return BadRequest(ModelState);
          }
-         Customer customer = SetFields(request);
+         Customer customer = Mapper.Map<Customer>(request);
          await CustomerService.AddAsync(customer);
          if (await UnitOfWork.CommitAsync() == false)
          {
             return BadRequest(ApiResponse.BadRequest("Failed to add customer"));
          }
-         return CreatedAtAction(nameof(Get), new { id = customer.Id }, ApiResponse<Customer>.Created(customer));
+         CustomerResponse data = MapperToCustomerResponse(customer);
+         return CreatedAtAction(nameof(Get), new { id = customer.Id }, ApiResponse<CustomerResponse>.Created(data));
       }
 
       [HttpPut("{id}")]
@@ -93,13 +104,9 @@ namespace API.Controllers
          if (ModelState.IsProblem())
          {
             return BadRequest(ModelState);
-         }
-         Customer customer = await GetByIdAsync(request.Id);
-         if (customer == null)
-         {
-            return NotFound(ApiResponse.NotFound($"Customer {id} not found"));
-         }
-         SetFields(customer, request);
+         }         
+         Customer customer = Mapper.Map<Customer>(request);
+         await CustomerService.UpdateAsync(customer);
          if (await UnitOfWork.CommitAsync() == false)
          {
             return BadRequest(ApiResponse.BadRequest("Failed to update customer"));

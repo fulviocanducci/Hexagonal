@@ -1,4 +1,5 @@
-﻿using Core.Entities;
+﻿using Canducci.Pagination;
+using Core.Entities;
 using Core.Interfaces;
 using Infrastructure.Data;
 using Microsoft.EntityFrameworkCore;
@@ -46,6 +47,30 @@ namespace Infrastructure.Repositories
       public async Task<Customer> GetAsync(Expression<Func<Customer, bool>> where)
       {
          return await _context.Customers.Where(where).FirstOrDefaultAsync();
+      }
+
+      public Task<List<Customer>> ToListAllAsync()
+      {
+         return _context.Customers.AsNoTracking().ToListAsync();
+      }
+
+      public Task<PaginatedRest<Customer>> ToPagedListAsync<TKey>(IPageRequest pageRequest, Expression<Func<Customer, TKey>> orderBy)
+      {
+         return _context
+            .Customers
+            .AsNoTracking()
+            .OrderBy(orderBy)
+            .ToPaginatedRestAsync(pageRequest.Current, pageRequest.Total);
+      }
+
+      public Task<PaginatedRest<TSelect>> ToPagedListAsync<TSelect, TKey>(IPageRequest pageRequest, Expression<Func<Customer, TSelect>> select, Expression<Func<Customer, TKey>> orderBy)
+      {
+         return _context
+            .Customers
+            .AsNoTracking()
+            .OrderBy(orderBy)
+            .Select(select)
+            .ToPaginatedRestAsync(pageRequest.Current, pageRequest.Total);
       }
 
       public Task UpdateAsync(Customer customer)

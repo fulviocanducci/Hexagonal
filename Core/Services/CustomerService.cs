@@ -1,4 +1,5 @@
-﻿using Core.Entities;
+﻿using Canducci.Pagination;
+using Core.Entities;
 using Core.Interfaces;
 using System;
 using System.Collections.Generic;
@@ -43,6 +44,21 @@ namespace Core.Services
       public Task<Customer> GetAsync(Expression<Func<Customer, bool>> where)
       {
          return _repository.GetAsync(where);
+      }
+
+      public Task<List<Customer>> ToListAllAsync()
+      {
+         return _repository.ToListAllAsync();
+      }
+
+      public Task<PaginatedRest<Customer>> ToPagedListAsync<TKey>(IPageRequest pageRequest, Expression<Func<Customer, TKey>> orderBy)
+      {
+         return _repository.ToPagedListAsync<TKey>(pageRequest, orderBy);
+      }
+
+      public Task<PaginatedRest<TSelect>> ToPagedListAsync<TSelect, TKey>(IPageRequest pageRequest, Expression<Func<Customer, TSelect>> select, Expression<Func<Customer, TKey>> orderBy)
+      {
+         return _repository.ToPagedListAsync<TSelect, TKey>(pageRequest, select, orderBy);
       }
 
       public Task UpdateAsync(Customer customer)

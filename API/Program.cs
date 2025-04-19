@@ -1,5 +1,7 @@
 using Application;
 using Infrastructure;
+using Mapster;
+using MapsterMapper;
 
 namespace API
 {
@@ -18,6 +20,8 @@ namespace API
          builder.Services.AddSwaggerGen();
          builder.Services.AddInfrastructure(configurationManager);
          builder.Services.AddApplicationDefault();
+         builder.Services.AddMapster();
+         builder.Services.AddMapsters();
 
          // Add WebApplication
          WebApplication app = builder.Build();

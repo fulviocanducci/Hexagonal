@@ -2,6 +2,7 @@
 using Core.Services;
 using Infrastructure.Data;
 using Infrastructure.Repositories;
+using Infrastructure.Utils;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -32,6 +33,8 @@ namespace Infrastructure
       
       internal static IServiceCollection AddServices(this IServiceCollection services, IConfiguration configuration)
       {
+         services.AddScoped<IPageRequest, PageRequest>();
+         services.AddScoped<PageRequest>();
          services.AddScoped<ICustomerService, CustomerService>();
          return services;
       }
